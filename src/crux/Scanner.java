@@ -21,7 +21,6 @@ public class Scanner implements Iterable<Token> {
 		lineNum = 1;
 		charPos = 0;
 		nextChar = readChar();
-		
 	}	
 	
 	// OPTIONAL: helper function for reading a single char from input
@@ -35,12 +34,14 @@ public class Scanner implements Iterable<Token> {
 		{
 			kyTu = input.read();
 			charPos++;
+			//if reader is at EOF, close the file.
 			if(kyTu == EOF)
-				input.close();
-			else if(kyTu == '\n')
 			{
-				lineNum++;
-				charPos = 0;
+				input.close();
+			}
+			//bypass '\r' 
+			while(kyTu == 13)
+			{
 				kyTu = readChar();
 			}
 		} catch (IOException e){
@@ -62,17 +63,30 @@ public class Scanner implements Iterable<Token> {
 		//Remove white spaces
 		while(nextChar == ' ')
 			nextChar = readChar();
+		//Reader is at EOF
 		if (nextChar == EOF)
+		{
 			t = Token.EOF(lineNum, charPos);
+		}
+		//Reader is at the end of line
+		else if(nextChar == '\n')
+		{
+			lineNum++;
+			charPos = 0;
+			nextChar = readChar();
+			t = next();
+		}
 		else
 		{
+			//capture the position of token
 			int tokPos = charPos;
+			//Check tokens that contain letters and digits
 			if(Character.isLetterOrDigit(nextChar))
 			{
 				String str = "";
 				if(Character.isLetter(nextChar))
 				{
-					boolean identifier = true;
+					boolean identifier = true; 
 					do{
 						str += (char)nextChar;
 						nextChar = readChar();
@@ -80,7 +94,7 @@ public class Scanner implements Iterable<Token> {
 					
 					for(Token.Kind iter : Token.Kind.values())
 					{
-						if(str.equals(iter))
+						if(iter.matches(str))
 						{
 							t = new Token(str, lineNum, tokPos);
 							identifier = false;
@@ -118,7 +132,7 @@ public class Scanner implements Iterable<Token> {
 				{
 					do{
 						nextChar =readChar();
-					}while(nextChar != '\n');
+					}while(nextChar != '\n' && nextChar != EOF);
 					t = next();
 				}
 				else
@@ -129,8 +143,8 @@ public class Scanner implements Iterable<Token> {
 				nextChar = readChar();
 				if(nextChar == '=')
 				{
-					nextChar = readChar();
 					t = new Token(">=", lineNum, tokPos);
+					nextChar = readChar();
 				}
 				else
 					t = new Token(">", lineNum, tokPos);
@@ -140,8 +154,8 @@ public class Scanner implements Iterable<Token> {
 				nextChar = readChar();
 				if(nextChar == '=')
 				{
-					nextChar = readChar();
 					t = new Token("<=", lineNum, tokPos);
+					nextChar = readChar();
 				}
 				else
 					t = new Token("<", lineNum, tokPos);
@@ -151,8 +165,8 @@ public class Scanner implements Iterable<Token> {
 				nextChar = readChar();
 				if(nextChar == '=')
 				{
-					nextChar = readChar();
 					t = new Token("==", lineNum, tokPos);
+					nextChar = readChar();
 				}
 				else
 					t = new Token("=", lineNum, tokPos);
@@ -166,7 +180,7 @@ public class Scanner implements Iterable<Token> {
 					t = new Token("!=", lineNum, tokPos);
 				}
 				else
-					t = Token.Error("Unexpected character: " + nextChar, lineNum, tokPos);
+					t = Token.Error("Unexpected character: " + (char)nextChar, lineNum, tokPos);
 			}
 			else if(nextChar == ':')
 			{
@@ -182,16 +196,17 @@ public class Scanner implements Iterable<Token> {
 			else
 			{
 				boolean found = false;
+				String lex = Character.toString((char) nextChar);
 				for(Token.Kind iter : Token.Kind.values())
 				{
-					if(iter.equals(nextChar))
+					if(iter.matches(lex))
 					{
 						found = true;
-						t = new Token(Character.toString((char) nextChar), lineNum, tokPos);
+						t = new Token(lex, lineNum, tokPos);
 					}
 				}
 				if(!found)
-					t = Token.Error("Unexpected Character: " + Character.toString((char) nextChar), lineNum, tokPos);
+					t = Token.Error("Unexpected Character: " + lex, lineNum, tokPos);
 				nextChar = readChar();	
 			}
 		}
