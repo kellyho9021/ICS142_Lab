@@ -66,7 +66,7 @@ public class Token {
 		
 		public boolean hasStaticLexeme()
 		{
-			return default_lexeme != null;
+			return default_lexeme != "";
 		}
 		
 		// OPTIONAL: if you wish to also make convenience functions, feel free
@@ -87,7 +87,7 @@ public class Token {
 	// OPTIONAL: implement factory functions for some tokens, as you see fit
 	public static Token Identifier(String lex, int linePos, int charPos)
 	{
-		Token tok = new Token(linePos, charPos);
+		Token tok = new Token(lex, linePos, charPos);
 		tok.kind = Kind.IDENTIFIER;
 		tok.lexeme = lex;
 		return tok;
@@ -95,7 +95,7 @@ public class Token {
 	
 	public static Token Integer(String lex, int linePos, int charPos)
 	{
-		Token tok = new Token(linePos, charPos);
+		Token tok = new Token(lex, linePos, charPos);
 		tok.kind = Kind.INTEGER;
 		tok.lexeme = lex;
 		return tok;
@@ -103,7 +103,7 @@ public class Token {
           
 	public static Token Float(String lex, int linePos, int charPos)
 	{
-		Token tok = new Token(linePos, charPos);
+		Token tok = new Token(lex, linePos, charPos);
 		tok.kind = Kind.FLOAT;
 		tok.lexeme = lex;
 		return tok;
@@ -111,7 +111,7 @@ public class Token {
 	
 	public static Token Error(String lex, int linePos, int charPos)
 	{
-		Token tok = new Token(linePos, charPos);
+		Token tok = new Token(lex, linePos, charPos);
 		tok.kind = Kind.ERROR;
 		tok.lexeme = lex;
 		return tok;
@@ -180,10 +180,10 @@ public class Token {
 	{
 		// TODO: implement this
 		String name = kind.name();
-		if(kind.hasStaticLexeme() == false)
-			name += " (" + lexeme() + ") ";
+		if(kind.hasStaticLexeme() == false && !kind.equals(Token.Kind.EOF))
+			name += "(" + lexeme() + ")";
 		
-		name += "(lineNume: " + lineNum + ", charPos: " + charPos + ")";
+		name += "(lineNume:" + lineNum + ", charPos:" + charPos + ")";
 		return name;
 	}
 	

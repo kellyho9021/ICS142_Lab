@@ -27,13 +27,10 @@ public class Compiler {
         }
 
         Token t = s.next();
-        //int a = 0;
         while(!t.is(Token.Kind.EOF))
-        //while(a < 5)
         {
                 System.out.println(t);
                 t = s.next();
-               // a++;
         }
         System.out.println(t);
     }
