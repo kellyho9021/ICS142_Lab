@@ -72,6 +72,10 @@ public class Token {
 		// OPTIONAL: if you wish to also make convenience functions, feel free
 		//           for example, boolean matches(String lexeme)
 		//           can report whether a Token.Kind has the given lexeme
+		public boolean matches(String lexeme)
+		{
+			return lexeme.equals(default_lexeme);
+		}
 	}
 	
 	private int lineNum;
@@ -138,7 +142,7 @@ public class Token {
 		// TODO: based on the given lexeme determine and set the actual kind
 		for(Kind i : Kind.values())
 		{
-			if(i.equals(lexeme))
+			if(i.matches(lexeme))
 			{
 				this.kind = i;
 				match = true;

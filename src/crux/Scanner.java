@@ -40,6 +40,8 @@ public class Scanner implements Iterable<Token> {
 			else if(kyTu == '\n')
 			{
 				lineNum++;
+				charPos = 0;
+				kyTu = readChar();
 			}
 		} catch (IOException e){
 			e.printStackTrace();
