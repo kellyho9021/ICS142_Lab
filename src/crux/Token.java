@@ -185,9 +185,9 @@ public class Token {
 	
 	// OPTIONAL: function to query a token about its kind
 	//           boolean is(Token.Kind kind)
-	public boolean is(Token.Kind kind)
+	public boolean is(Token.Kind key)
 	{
-		return this.kind.equals(kind);
+		return this.kind.equals(key);
 	}
 	// OPTIONAL: add any additional helper or convenience methods
 	//           that you find make for a clean design
