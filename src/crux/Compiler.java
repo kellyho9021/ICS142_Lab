@@ -6,6 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import crux.Token.Kind;
+
 public class Compiler {
     public static String studentName = "Kelly Ho";
     public static String studentID = "81482302";
@@ -25,12 +27,10 @@ public class Compiler {
         }
 
         Token t = s.next();
-        int a = 0;
-        while(a < 2)
+        while(!t.is(Kind.EOF))
         {
                 System.out.println(t);
                 t = s.next();
-                a++;
         }
         //System.out.println(t);
     }

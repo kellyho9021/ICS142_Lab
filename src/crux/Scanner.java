@@ -5,7 +5,6 @@ import java.util.Iterator;
 
 public class Scanner implements Iterable<Token> {
 	private static final int EOF = -1;
-	private static final int BOF = -2;
 	public static String studentName = "Kelly Ho";
 	public static String studentID = "81482302";
 	public static String uciNetID = "doankhah";

@@ -1,5 +1,7 @@
 package crux;
 
+import java.util.Iterator;
+
 public class Token {
 	
 	public static enum Kind {
@@ -79,7 +81,38 @@ public class Token {
 	
 	
 	// OPTIONAL: implement factory functions for some tokens, as you see fit
+	public static Token Identifier(String lex, int linePos, int charPos)
+	{
+		Token tok = new Token(linePos, charPos);
+		tok.kind = Kind.IDENTIFIER;
+		tok.lexeme = lex;
+		return tok;
+	}
+	
+	public static Token Integer(String lex, int linePos, int charPos)
+	{
+		Token tok = new Token(linePos, charPos);
+		tok.kind = Kind.INTEGER;
+		tok.lexeme = lex;
+		return tok;
+	}
           
+	public static Token Float(String lex, int linePos, int charPos)
+	{
+		Token tok = new Token(linePos, charPos);
+		tok.kind = Kind.FLOAT;
+		tok.lexeme = lex;
+		return tok;
+	}
+	
+	public static Token Error(String lex, int linePos, int charPos)
+	{
+		Token tok = new Token(linePos, charPos);
+		tok.kind = Kind.ERROR;
+		tok.lexeme = lex;
+		return tok;
+	}
+	
 	public static Token EOF(int linePos, int charPos)
 	{
 		Token tok = new Token(linePos, charPos);
@@ -101,12 +134,22 @@ public class Token {
 	{
 		this.lineNum = lineNum;
 		this.charPos = charPos;
-		
+		boolean match = false;
 		// TODO: based on the given lexeme determine and set the actual kind
-		while()
+		for(Kind i : Kind.values())
+		{
+			if(i.equals(lexeme))
+			{
+				this.kind = i;
+				match = true;
+			}
+		}
 		// if we don't match anything, signal error
-		this.kind = Kind.ERROR;
-		this.lexeme = "Unrecognized lexeme: " + lexeme;
+		if(!match)
+		{
+			this.kind = Kind.ERROR;
+			this.lexeme = "Unrecognized lexeme: " + lexeme;
+		}
 	}
 	
 	public int lineNumber()
@@ -123,19 +166,31 @@ public class Token {
 	public String lexeme()
 	{
 		// TODO: implement
-		return null;
+		if(!kind.hasStaticLexeme())
+			return lexeme;
+		else
+			return kind.default_lexeme;
 	}
 	
 	public String toString()
 	{
 		// TODO: implement this
-		return "Not Yet Implemented";
+		String name = kind.name();
+		if(kind.hasStaticLexeme() == false)
+			name += " (" + lexeme() + ") ";
+		
+		name += "(lineNume: " + lineNum + ", charPos: " + charPos + ")";
+		return name;
 	}
 	
 	// OPTIONAL: function to query a token about its kind
 	//           boolean is(Token.Kind kind)
-	
+	public boolean is(Token.Kind kind)
+	{
+		return this.kind.equals(kind);
+	}
 	// OPTIONAL: add any additional helper or convenience methods
 	//           that you find make for a clean design
+	
 
 }
