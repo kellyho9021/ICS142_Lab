@@ -7,9 +7,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class Compiler {
-    public static String studentName = "TODO: Your Name";
-    public static String studentID = "TODO: Your 8-digit id";
-    public static String uciNetID = "TODO: uci-net id";
+    public static String studentName = "Kelly Ho";
+    public static String studentID = "81482302";
+    public static String uciNetID = "doankhah";
 	
 	public static void main(String[] args)
 	{
@@ -25,10 +25,13 @@ public class Compiler {
         }
 
         Token t = s.next();
-        while (/* t is not the EOF token */) {
+        int a = 0;
+        while(a < 2)
+        {
                 System.out.println(t);
                 t = s.next();
+                a++;
         }
-        System.out.println(t);
+        //System.out.println(t);
     }
 }

@@ -3,15 +3,45 @@ package crux;
 public class Token {
 	
 	public static enum Kind {
+		//Reserved keywords
 		AND("and"),
 		OR("or"),
 		NOT("not"),
+		LET("let"),
+		VAR("var"),
+		ARRAY("array"),
+		FUNC("func"),
+		IF("if"),
+		ELSE("else"),
+		WHILE("while"),
+		TRUE("true"),
+		FALSE("false"),
+		RETURN("return"),
 		
+		//Character sequences
+		OPEN_PAREN("("),
+		CLOSE_PAREN(")"),
+		OPEN_BRACE("{"),
+		CLOSE_BRACE("}"),
+		OPEN_BRACKET("["),
+		CLOSE_BRACKET("]"),
 		ADD("+"),
 		SUB("-"),
 		MUL("*"),
 		DIV("/"),
+		GREATER_EQUAL(">="),
+		LESSER_EQUAL("<="),
+		NOT_EQUAL("!="),
+		EQUAL("=="),
+		GREATER_THAN(">"),
+		LESS_THAN("<"),
+		ASSIGN("="),
+		COMMA(","),
+		SEMICOLON(";"),
+		COLON(":"),
+		CALL("::"),
 		
+		//Reserved value literals
 		IDENTIFIER(),
 		INTEGER(),
 		FLOAT(),
@@ -49,14 +79,13 @@ public class Token {
 	
 	
 	// OPTIONAL: implement factory functions for some tokens, as you see fit
-	/*           
+          
 	public static Token EOF(int linePos, int charPos)
 	{
 		Token tok = new Token(linePos, charPos);
 		tok.kind = Kind.EOF;
 		return tok;
 	}
-	*/
 
 	private Token(int lineNum, int charPos)
 	{
@@ -74,7 +103,7 @@ public class Token {
 		this.charPos = charPos;
 		
 		// TODO: based on the given lexeme determine and set the actual kind
-		
+		while()
 		// if we don't match anything, signal error
 		this.kind = Kind.ERROR;
 		this.lexeme = "Unrecognized lexeme: " + lexeme;
