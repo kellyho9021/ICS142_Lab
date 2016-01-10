@@ -57,15 +57,164 @@ public class Scanner implements Iterable<Token> {
 	{
 		// TODO: implement this
 		Token t = null;
+		//Remove white spaces
+		while(nextChar == ' ')
+			nextChar = readChar();
 		if (nextChar == EOF)
 			t = Token.EOF(lineNum, charPos);
+		else
+		{
+			int tokPos = charPos;
+			if(Character.isLetterOrDigit(nextChar))
+			{
+				String str = "";
+				if(Character.isLetter(nextChar))
+				{
+					boolean identifier = true;
+					do{
+						str += (char)nextChar;
+						nextChar = readChar();
+					}while(Character.isLetterOrDigit(nextChar) || nextChar == '_');
+					
+					for(Token.Kind iter : Token.Kind.values())
+					{
+						if(str.equals(iter))
+						{
+							t = new Token(str, lineNum, tokPos);
+							identifier = false;
+						}
+					}
+					if(identifier)
+						t = Token.Identifier(str, lineNum, tokPos);
+				}
+				else
+				{
+					while(Character.isDigit(nextChar))
+					{
+						str += (char) nextChar;
+						nextChar = readChar();
+					}
+					if(nextChar == '.')
+					{
+						str += (char) nextChar;
+						nextChar = readChar();
+						while(Character.isDigit(nextChar))
+						{
+							str += (char) nextChar;
+							nextChar = readChar();
+						}
+						t = Token.Float(str, lineNum, tokPos);
+					}
+					else
+						t = Token.Integer(str, lineNum, tokPos);
+				}
+			}
+			else if(nextChar == '/')
+			{
+				nextChar = readChar();
+				if(nextChar == '/')
+				{
+					do{
+						nextChar =readChar();
+					}while(nextChar != '\n');
+					t = next();
+				}
+				else
+					t = new Token("/", lineNum, tokPos);
+			}
+			else if(nextChar == '>')
+			{
+				nextChar = readChar();
+				if(nextChar == '=')
+				{
+					nextChar = readChar();
+					t = new Token(">=", lineNum, tokPos);
+				}
+				else
+					t = new Token(">", lineNum, tokPos);
+			}
+			else if(nextChar == '<')
+			{
+				nextChar = readChar();
+				if(nextChar == '=')
+				{
+					nextChar = readChar();
+					t = new Token("<=", lineNum, tokPos);
+				}
+				else
+					t = new Token("<", lineNum, tokPos);
+			}
+			else if(nextChar == '=')
+			{
+				nextChar = readChar();
+				if(nextChar == '=')
+				{
+					nextChar = readChar();
+					t = new Token("==", lineNum, tokPos);
+				}
+				else
+					t = new Token("=", lineNum, tokPos);
+			}
+			else if(nextChar == '!')
+			{
+				nextChar = readChar();
+				if(nextChar == '=')
+				{
+					nextChar = readChar();
+					t = new Token("!=", lineNum, tokPos);
+				}
+				else
+					t = Token.Error("Unexpected character: " + nextChar, lineNum, tokPos);
+			}
+			else if(nextChar == ':')
+			{
+				nextChar = readChar();
+				if(nextChar == ':')
+				{
+					t = new Token("::", lineNum, tokPos);
+					nextChar = readChar();
+				}
+				else
+					t = new Token(":", lineNum, tokPos);
+			}
+			else
+			{
+				boolean found = false;
+				for(Token.Kind iter : Token.Kind.values())
+				{
+					if(iter.equals(nextChar))
+					{
+						found = true;
+						t = new Token(Character.toString((char) nextChar), lineNum, tokPos);
+					}
+				}
+				if(!found)
+					t = Token.Error("Unexpected Character: " + Character.toString((char) nextChar), lineNum, tokPos);
+				nextChar = readChar();	
+			}
+		}
 		return t;
 	}
 
 	@Override
 	public Iterator<Token> iterator() {
 		// TODO Auto-generated method stub
-		return null;
+		Iterator<Token> iter = new Iterator<Token>()
+				{
+					Scanner scan;
+					@Override
+					public boolean hasNext() {
+						// TODO Auto-generated method stub
+						return scan.nextChar != EOF;
+					}
+
+					@Override
+					public Token next() {
+						// TODO Auto-generated method stub
+						return scan.next();
+					}
+				};
+		return iter;
 	}
 
 	// OPTIONAL: any other methods that you find convenient for implementation or testing
