@@ -179,12 +179,12 @@ public class Token {
 	public String toString()
 	{
 		// TODO: implement this
-		String name = kind.name();
+		String str = kind.name();
 		if(kind.hasStaticLexeme() == false && !kind.equals(Token.Kind.EOF))
-			name += "(" + lexeme() + ")";
+			str += "(" + lexeme() + ")";
 		
-		name += "(lineNume:" + lineNum + ", charPos:" + charPos + ")";
-		return name;
+		str += "(lineNume:" + lineNum + ", charPos:" + charPos + ")";
+		return str;
 	}
 	
 	// OPTIONAL: function to query a token about its kind

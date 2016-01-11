@@ -39,11 +39,6 @@ public class Scanner implements Iterable<Token> {
 			{
 				input.close();
 			}
-			//bypass '\r' 
-			while(kyTu == 13)
-			{
-				kyTu = readChar();
-			}
 		} catch (IOException e){
 			e.printStackTrace();
 		}
@@ -61,8 +56,10 @@ public class Scanner implements Iterable<Token> {
 		// TODO: implement this
 		Token t = null;
 		//Remove white spaces
-		while(nextChar == ' ')
+		while(nextChar == ' ' || nextChar == '\r')
+		{
 			nextChar = readChar();
+		}
 		//Reader is at EOF
 		if (nextChar == EOF)
 		{
@@ -70,7 +67,7 @@ public class Scanner implements Iterable<Token> {
 		}
 		//Reader is at the end of line
 		else if(nextChar == '\n')
-		{
+		{	
 			lineNum++;
 			charPos = 0;
 			nextChar = readChar();
@@ -81,26 +78,21 @@ public class Scanner implements Iterable<Token> {
 			//capture the position of token
 			int tokPos = charPos;
 			//Check tokens that contain letters and digits
-			if(Character.isLetterOrDigit(nextChar))
+			if(Character.isLetterOrDigit(nextChar) || nextChar == '_')
 			{
 				String str = "";
-				if(Character.isLetter(nextChar))
+				if(Character.isLetter(nextChar) || nextChar == '_')
 				{
-					boolean identifier = true; 
 					do{
 						str += (char)nextChar;
 						nextChar = readChar();
 					}while(Character.isLetterOrDigit(nextChar) || nextChar == '_');
 					
-					for(Token.Kind iter : Token.Kind.values())
+					if(foundToken(str))
 					{
-						if(iter.matches(str))
-						{
-							t = new Token(str, lineNum, tokPos);
-							identifier = false;
-						}
+						t = new Token(str, lineNum, tokPos);
 					}
-					if(identifier)
+					else
 						t = Token.Identifier(str, lineNum, tokPos);
 				}
 				else
@@ -138,75 +130,98 @@ public class Scanner implements Iterable<Token> {
 				else
 					t = new Token("/", lineNum, tokPos);
 			}
-			else if(nextChar == '>')
-			{
-				nextChar = readChar();
-				if(nextChar == '=')
-				{
-					t = new Token(">=", lineNum, tokPos);
-					nextChar = readChar();
-				}
-				else
-					t = new Token(">", lineNum, tokPos);
-			}
-			else if(nextChar == '<')
-			{
-				nextChar = readChar();
-				if(nextChar == '=')
-				{
-					t = new Token("<=", lineNum, tokPos);
-					nextChar = readChar();
-				}
-				else
-					t = new Token("<", lineNum, tokPos);
-			}
-			else if(nextChar == '=')
-			{
-				nextChar = readChar();
-				if(nextChar == '=')
-				{
-					t = new Token("==", lineNum, tokPos);
-					nextChar = readChar();
-				}
-				else
-					t = new Token("=", lineNum, tokPos);
-			}
-			else if(nextChar == '!')
-			{
-				nextChar = readChar();
-				if(nextChar == '=')
-				{
-					nextChar = readChar();
-					t = new Token("!=", lineNum, tokPos);
-				}
-				else
-					t = Token.Error("Unexpected character: " + (char)nextChar, lineNum, tokPos);
-			}
-			else if(nextChar == ':')
-			{
-				nextChar = readChar();
-				if(nextChar == ':')
-				{
-					t = new Token("::", lineNum, tokPos);
-					nextChar = readChar();
-				}
-				else
-					t = new Token(":", lineNum, tokPos);
-			}
+//			else if(nextChar == '>')
+//			{
+//				nextChar = readChar();
+//				if(nextChar == '=')
+//				{
+//					t = new Token(">=", lineNum, tokPos);
+//					nextChar = readChar();
+//				}
+//				else
+//					t = new Token(">", lineNum, tokPos);
+//			}
+//			else if(nextChar == '<')
+//			{
+//				nextChar = readChar();
+//				if(nextChar == '=')
+//				{
+//					t = new Token("<=", lineNum, tokPos);
+//					nextChar = readChar();
+//				}
+//				else
+//					t = new Token("<", lineNum, tokPos);
+//			}
+//			else if(nextChar == '=')
+//			{
+//				nextChar = readChar();
+//				if(nextChar == '=')
+//				{
+//					t = new Token("==", lineNum, tokPos);
+//					nextChar = readChar();
+//				}
+//				else
+//					t = new Token("=", lineNum, tokPos);
+//			}
+//			else if(nextChar == '!')
+//			{
+//				nextChar = readChar();
+//				if(nextChar == '=')
+//				{
+//					nextChar = readChar();
+//					t = new Token("!=", lineNum, tokPos);
+//				}
+//				else
+//					t = Token.Error("Unexpected character: " + (char)nextChar, lineNum, tokPos);
+//			}
+//			else if(nextChar == ':')
+//			{
+//				nextChar = readChar();
+//				if(nextChar == ':')
+//				{
+//					t = new Token("::", lineNum, tokPos);
+//					nextChar = readChar();
+//				}
+//				else
+//					t = new Token(":", lineNum, tokPos);
+//			}
+//			else
+//			{
+//				String lex = Character.toString((char) nextChar);
+//				if(foundToken(lex))
+//				{
+//					t = new Token(lex, lineNum, tokPos);
+//				}
+//				else
+//					t = Token.Error("Unexpected Character: " + lex, lineNum, tokPos);
+//				nextChar = readChar();	
+//			}
 			else
 			{
-				boolean found = false;
 				String lex = Character.toString((char) nextChar);
-				for(Token.Kind iter : Token.Kind.values())
+				if(nextChar == ':' || nextChar == '=' || nextChar == '<' || nextChar == '>' || nextChar == '!')
 				{
-					if(iter.matches(lex))
+					nextChar = readChar();
+					if(nextChar == '=' || nextChar == ':')
 					{
-						found = true;
+						String temp = lex + (char) nextChar;
+						if(foundToken(temp))
+						{
+							t = new Token(temp, lineNum, tokPos);
+						}
+					}
+					else
+						return new Token(lex, lineNum, tokPos);
+				}
+				else
+				{
+					if(foundToken(lex))
+					{
 						t = new Token(lex, lineNum, tokPos);
 					}
+					else
+						t = Token.Error("Unexpected Character: " + lex, lineNum, tokPos);
 				}
-				if(!found)
-					t = Token.Error("Unexpected Character: " + lex, lineNum, tokPos);
 				nextChar = readChar();	
 			}
 		}
@@ -235,4 +250,11 @@ public class Scanner implements Iterable<Token> {
 	}
 
 	// OPTIONAL: any other methods that you find convenient for implementation or testing
+	public boolean foundToken(String lex)
+	{
+		for(Token.Kind iter : Token.Kind.values())
+			if(iter.matches(lex))
+				return true;
+		return false;
+	}
 }
