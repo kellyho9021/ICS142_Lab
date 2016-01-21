@@ -130,10 +130,21 @@ public class Scanner implements Iterable<Token> {
 				else
 					t = new Token("/", lineNum, tokPos);
 			}
+			else if(nextChar == '!')
+			{
+				nextChar = readChar();
+				if(nextChar == '=')
+				{
+					t = new Token("!=", lineNum, tokPos);
+					nextChar = readChar();
+				}
+				else
+					t = Token.Error("Unexpected character: " + '!', lineNum, tokPos);
+			}
 			else
 			{
 				String lex = Character.toString((char) nextChar);
-				if(nextChar == ':' || nextChar == '=' || nextChar == '<' || nextChar == '>' || nextChar == '!')
+				if(nextChar == ':' || nextChar == '=' || nextChar == '<' || nextChar == '>')
 				{
 					nextChar = readChar();
 					if(nextChar == '=' || nextChar == ':')
@@ -154,7 +165,7 @@ public class Scanner implements Iterable<Token> {
 						t = new Token(lex, lineNum, tokPos);
 					}
 					else
-						t = Token.Error("Unexpected Character: " + lex, lineNum, tokPos);
+						t = Token.Error("Unexpected character: " + lex, lineNum, tokPos);
 				}
 				nextChar = readChar();	
 			}
@@ -165,22 +176,7 @@ public class Scanner implements Iterable<Token> {
 	@Override
 	public Iterator<Token> iterator() {
 		// TODO Auto-generated method stub
-		Iterator<Token> iter = new Iterator<Token>()
-				{
-					Scanner scan;
-					@Override
-					public boolean hasNext() {
-						// TODO Auto-generated method stub
-						return scan.nextChar != EOF;
-					}
-
-					@Override
-					public Token next() {
-						// TODO Auto-generated method stub
-						return scan.next();
-					}
-				};
-		return iter;
+		return null;
 	}
 
 	// OPTIONAL: any other methods that you find convenient for implementation or testing

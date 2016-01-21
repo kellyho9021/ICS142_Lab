@@ -183,7 +183,7 @@ public class Token {
 		if(kind.hasStaticLexeme() == false && !kind.equals(Token.Kind.EOF))
 			str += "(" + lexeme() + ")";
 		
-		str += "(lineNume:" + lineNum + ", charPos:" + charPos + ")";
+		str += "(lineNum:" + lineNum + ", charPos:" + charPos + ")";
 		return str;
 	}
 	
