@@ -1,62 +1,61 @@
 package crux;
 
-import java.util.Iterator;
-
 public class Token {
 	
 	public static enum Kind {
-		//Reserved keywords
 		AND("and"),
 		OR("or"),
 		NOT("not"),
+		
 		LET("let"),
 		VAR("var"),
 		ARRAY("array"),
 		FUNC("func"),
+		
+		TRUE("true"),
+		FALSE("false"),
+		
 		IF("if"),
 		ELSE("else"),
 		WHILE("while"),
-		TRUE("true"),
-		FALSE("false"),
 		RETURN("return"),
 		
-		//Character sequences
 		OPEN_PAREN("("),
 		CLOSE_PAREN(")"),
 		OPEN_BRACE("{"),
 		CLOSE_BRACE("}"),
 		OPEN_BRACKET("["),
 		CLOSE_BRACKET("]"),
+		
 		ADD("+"),
 		SUB("-"),
 		MUL("*"),
 		DIV("/"),
+		
 		GREATER_EQUAL(">="),
 		LESSER_EQUAL("<="),
 		NOT_EQUAL("!="),
 		EQUAL("=="),
 		GREATER_THAN(">"),
 		LESS_THAN("<"),
+		
 		ASSIGN("="),
 		COMMA(","),
 		SEMICOLON(";"),
 		COLON(":"),
 		CALL("::"),
 		
-		//Reserved value literals
 		IDENTIFIER(),
 		INTEGER(),
 		FLOAT(),
 		ERROR(),
-		EOF();
-		
-		// TODO: complete the list of possible tokens
+		EOF("");
 		
 		private String default_lexeme;
 		
 		Kind()
 		{
-			default_lexeme = "";
+			default_lexeme = null;
 		}
 		
 		Kind(String lexeme)
@@ -64,17 +63,21 @@ public class Token {
 			default_lexeme = lexeme;
 		}
 		
-		public boolean hasStaticLexeme()
+		public boolean matches(int c)
 		{
-			return default_lexeme != "";
+			return default_lexeme != null
+			    && default_lexeme.length() == 1
+                && default_lexeme.charAt(0) == c;
 		}
 		
-		// OPTIONAL: if you wish to also make convenience functions, feel free
-		//           for example, boolean matches(String lexeme)
-		//           can report whether a Token.Kind has the given lexeme
 		public boolean matches(String lexeme)
 		{
 			return lexeme.equals(default_lexeme);
+		}
+		
+		public boolean hasStaticLexeme()
+		{
+			return default_lexeme != null;
 		}
 	}
 	
@@ -82,38 +85,12 @@ public class Token {
 	private int charPos;
 	Kind kind;
 	private String lexeme = "";
-	
-	
-	// OPTIONAL: implement factory functions for some tokens, as you see fit
-	public static Token Identifier(String lex, int linePos, int charPos)
+
+	public static Token Error(String description, int linePos, int charPos)
 	{
-		Token tok = new Token(lex, linePos, charPos);
-		tok.kind = Kind.IDENTIFIER;
-		tok.lexeme = lex;
-		return tok;
-	}
-	
-	public static Token Integer(String lex, int linePos, int charPos)
-	{
-		Token tok = new Token(lex, linePos, charPos);
-		tok.kind = Kind.INTEGER;
-		tok.lexeme = lex;
-		return tok;
-	}
-          
-	public static Token Float(String lex, int linePos, int charPos)
-	{
-		Token tok = new Token(lex, linePos, charPos);
-		tok.kind = Kind.FLOAT;
-		tok.lexeme = lex;
-		return tok;
-	}
-	
-	public static Token Error(String lex, int linePos, int charPos)
-	{
-		Token tok = new Token(lex, linePos, charPos);
+		Token tok = new Token(linePos, charPos);
 		tok.kind = Kind.ERROR;
-		tok.lexeme = lex;
+		tok.lexeme = description;
 		return tok;
 	}
 	
@@ -123,7 +100,31 @@ public class Token {
 		tok.kind = Kind.EOF;
 		return tok;
 	}
-
+	
+	public static Token Identifier(String name, int linePos, int charPos)
+	{
+		Token tok = new Token(linePos, charPos);
+		tok.kind = Kind.IDENTIFIER;
+		tok.lexeme = name;
+		return tok;
+	}
+	
+	public static Token Integer(String value, int linePos, int charPos)
+	{
+		Token tok = new Token(linePos, charPos);
+		tok.kind = Kind.INTEGER;
+		tok.lexeme = value;
+		return tok;
+	}
+		
+	public static Token Float(String value, int linePos, int charPos)
+	{
+		Token tok = new Token(linePos, charPos);
+		tok.kind = Kind.FLOAT;
+		tok.lexeme = value;
+		return tok;
+	}
+	
 	private Token(int lineNum, int charPos)
 	{
 		this.lineNum = lineNum;
@@ -138,22 +139,17 @@ public class Token {
 	{
 		this.lineNum = lineNum;
 		this.charPos = charPos;
-		boolean match = false;
-		// TODO: based on the given lexeme determine and set the actual kind
-		for(Kind i : Kind.values())
-		{
-			if(i.matches(lexeme))
-			{
-				this.kind = i;
-				match = true;
+		
+		for (Kind tok: Token.Kind.values()) {
+			if (tok.matches(lexeme)) {
+				this.kind = tok;
+				return;
 			}
 		}
+		
 		// if we don't match anything, signal error
-		if(!match)
-		{
-			this.kind = Kind.ERROR;
-			this.lexeme = "Unrecognized lexeme: " + lexeme;
-		}
+		this.kind = Kind.ERROR;
+		this.lexeme = "Unrecognized lexeme: " + lexeme;
 	}
 	
 	public int lineNumber()
@@ -166,35 +162,71 @@ public class Token {
 		return charPos;
 	}
 	
-	// Return the lexeme representing or held by this token
 	public String lexeme()
 	{
-		// TODO: implement
-		if(!kind.hasStaticLexeme())
-			return lexeme;
-		else
-			return kind.default_lexeme;
+		return kind.hasStaticLexeme() ? kind.default_lexeme : lexeme;
 	}
 	
 	public String toString()
 	{
-		// TODO: implement this
 		String str = kind.name();
-		if(kind.hasStaticLexeme() == false && !kind.equals(Token.Kind.EOF))
+		
+		if (!kind.hasStaticLexeme())
 			str += "(" + lexeme() + ")";
 		
-		str += "(lineNum:" + lineNum + ", charPos:" + charPos + ")";
+		str += "(";
+		str += "lineNum:" + lineNum;
+		str += ", ";
+		str += "charPos:" + charPos;
+		str += ")";
+		
 		return str;
 	}
 	
-	// OPTIONAL: function to query a token about its kind
-	//           boolean is(Token.Kind kind)
-	public boolean is(Token.Kind key)
+	/*
+	public String javaString()
 	{
-		return this.kind.equals(key);
+		String str = "";
+		
+		if (is(Kind.IDENTIFIER))
+			str += "new CruxToken.Identifier(\"" + lexeme +"\", ";
+		else if (is(Kind.ERROR))
+			str += "new CruxToken.Error(\"" + lexeme + "\", ";
+		else if (is(Kind.INTEGER))
+			str += "new CruxToken.Integer(\"" + lexeme + "\", ";
+		else if (is(Kind.FLOAT))
+			str += "new CruxToken.Float(\"" + lexeme + "\", ";
+		else if (is(Kind.EOF))
+			str += "new CruxToken.EOF(";
+		else
+			str += "new CruxToken(\"" + kind.default_lexeme + "\", ";
+		
+		// TODO: should java-escape the token.name() strings.
+		str += lineNum + ", " + charPos + ");";
+		
+		return str;
 	}
-	// OPTIONAL: add any additional helper or convenience methods
-	//           that you find make for a clean design
+	*/
 	
+	public boolean is(Token.Kind kind)
+	{
+		return this.kind == kind;
+	}
+	
+	public boolean equals(Object other)
+	{
+		if (!(other instanceof Token))
+			return false;
+		Token tok = (Token)other;
+			
+		return this.kind == tok.kind
+		    && this.lexeme().equals(tok.lexeme())
+		    && this.lineNum == tok.lineNum
+		    && this.charPos == tok.charPos;
+	}
 
+	public Kind kind() {
+		// TODO Auto-generated method stub
+		return kind;
+	}
 }

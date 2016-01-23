@@ -4,10 +4,9 @@ import java.io.Reader;
 import java.util.Iterator;
 
 public class Scanner implements Iterable<Token> {
-	private static final int EOF = -1;
-	public static String studentName = "Kelly Ho";
-	public static String studentID = "81482302";
-	public static String uciNetID = "doankhah";
+	public static String studentName = "TODO: YOUR NAME";
+	public static String studentID = "TODO: Your 8-digit id";
+	public static String uciNetID = "TODO: uci-net id";
 	
 	private int lineNum;  // current line count
 	private int charPos;  // character offset for current line
@@ -16,175 +15,196 @@ public class Scanner implements Iterable<Token> {
 	
 	Scanner(Reader reader)
 	{
-		// TODO: initialize the Scanner
-		input = reader;
 		lineNum = 1;
 		charPos = 0;
+		input = reader;
 		nextChar = readChar();
-	}	
-	
-	// OPTIONAL: helper function for reading a single char from input
-	//           can be used to catch and handle any IOExceptions,
-	//           advance the charPos or lineNum, etc.
+	}
+
+	public Token next()
+	{
+		Token tok = nextImpl();
+		return tok;
+	}
 	
 	private int readChar()
 	{
-		int kyTu = 0;
-		try
-		{
-			kyTu = input.read();
+		int c = -1;
+		try {
+			c = input.read();
 			charPos++;
-			//if reader is at EOF, close the file.
-			if(kyTu == EOF)
-			{
-				input.close();
-			}
-		} catch (IOException e){
-			e.printStackTrace();
+		} catch (IOException e) {
+			//e.printStackTrace();
 		}
-		return kyTu;
-	}
-
 		
-
-	/* Invariants:
-	 *  1. call assumes that nextChar is already holding an unread character
-	 *  2. return leaves nextChar containing an untokenized character
-	 */
-	public Token next()
+		if (-1 == c) {
+			try {
+				input.close();
+			} catch (IOException e) {
+			}
+		}
+		
+		return c;
+	}
+		
+	private boolean atEOF()
 	{
-		// TODO: implement this
-		Token t = null;
-		//Remove white spaces
-		while(nextChar == ' ' || nextChar == '\r')
-		{
+		return -1 == nextChar;
+	}
+	
+	/* Invariants:
+	 *  - readOne is called always once before return, nextChar not inspected afterward
+	 */
+	private Token nextImpl()
+	{
+		while (Character.isWhitespace(nextChar)) {
+			if ('\n' == nextChar) {
+				lineNum++;
+				charPos = 0;
+			}
 			nextChar = readChar();
 		}
-		//Reader is at EOF
-		if (nextChar == EOF)
-		{
-			t = Token.EOF(lineNum, charPos);
-		}
-		//Reader is at the end of line
-		else if(nextChar == '\n')
-		{	
-			lineNum++;
-			charPos = 0;
+		
+		if (atEOF())
+			return Token.EOF(lineNum, charPos);
+		
+		int pos = charPos;
+		
+		if (nextChar == '/') {
 			nextChar = readChar();
-			t = next();
+			if (nextChar == '/') {
+				while ((nextChar = readChar()) != '\n' && nextChar != -1) {}
+				return next();
+			}
+			return new Token("/", lineNum, pos);
 		}
-		else
+		
+		else if (nextChar == '=') {
+			nextChar = readChar();
+			if (nextChar == '=') {
+				nextChar = readChar();
+				return new Token("==", lineNum, pos);
+			}
+			return new Token("=", lineNum, pos);
+		}
+		
+		else if (nextChar == '<') {
+			nextChar = readChar();
+			if (nextChar == '=') {
+				nextChar = readChar();
+				return new Token("<=", lineNum, pos);
+			}
+			return new Token("<", lineNum, pos);
+		}
+		
+		else if (nextChar == '>') {
+			nextChar = readChar();
+			if (nextChar == '=') {
+				nextChar = readChar();
+				return new Token(">=", lineNum, pos);
+			}
+			return new Token(">", lineNum, pos);
+		}
+		
+		else if (nextChar == ':') {
+			nextChar = readChar();
+			if (nextChar == ':') {
+				nextChar = readChar();
+				return new Token("::", lineNum, pos);
+			}
+			return new Token(":", lineNum, pos);
+		}
+		
+		else if (nextChar == '!') {
+			String c = Character.toString((char)nextChar);
+			nextChar = readChar();
+			if (nextChar == '=') {
+				nextChar = readChar();
+				return new Token("!=", lineNum, pos);
+			}
+			return Token.Error("Unexpected character: "+c, lineNum, pos);
+		}
+			
+		else if (Character.isDigit(nextChar))
 		{
-			//capture the position of token
-			int tokPos = charPos;
-			//Check tokens that contain letters and digits
-			if(Character.isLetterOrDigit(nextChar) || nextChar == '_')
-			{
-				String str = "";
-				if(Character.isLetter(nextChar) || nextChar == '_')
-				{
-					do{
-						str += (char)nextChar;
-						nextChar = readChar();
-					}while(Character.isLetterOrDigit(nextChar) || nextChar == '_');
-					
-					if(foundToken(str))
-					{
-						t = new Token(str, lineNum, tokPos);
-					}
-					else
-						t = Token.Identifier(str, lineNum, tokPos);
-				}
-				else
-				{
-					while(Character.isDigit(nextChar))
-					{
-						str += (char) nextChar;
-						nextChar = readChar();
-					}
-					if(nextChar == '.')
-					{
-						str += (char) nextChar;
-						nextChar = readChar();
-						while(Character.isDigit(nextChar))
-						{
-							str += (char) nextChar;
-							nextChar = readChar();
-						}
-						t = Token.Float(str, lineNum, tokPos);
-					}
-					else
-						t = Token.Integer(str, lineNum, tokPos);
-				}
-			}
-			else if(nextChar == '/')
-			{
+			String num = "";
+			
+			while (Character.isDigit(nextChar)) {
+				num += (char)nextChar;
 				nextChar = readChar();
-				if(nextChar == '/')				
-				{
-					do{
-						nextChar =readChar();
-					}while(nextChar != '\n' && nextChar != EOF);
-					t = next();
-				}
-				else
-					t = new Token("/", lineNum, tokPos);
 			}
-			else if(nextChar == '!')
-			{
+			
+			if (nextChar == '.') {
+				num += (char)nextChar;
 				nextChar = readChar();
-				if(nextChar == '=')
-				{
-					t = new Token("!=", lineNum, tokPos);
+				while (Character.isDigit(nextChar)) {
+					num += (char)nextChar;
 					nextChar = readChar();
 				}
-				else
-					t = Token.Error("Unexpected character: " + '!', lineNum, tokPos);
+				return Token.Float(num, lineNum, pos);
 			}
-			else
-			{
-				String lex = Character.toString((char) nextChar);
-				if(nextChar == ':' || nextChar == '=' || nextChar == '<' || nextChar == '>')
-				{
-					nextChar = readChar();
-					if(nextChar == '=' || nextChar == ':')
-					{
-						String temp = lex + (char) nextChar;
-						if(foundToken(temp))
-						{
-							t = new Token(temp, lineNum, tokPos);
-						}
-					}
-					else
-						return new Token(lex, lineNum, tokPos);
-				}
-				else
-				{
-					if(foundToken(lex))
-					{
-						t = new Token(lex, lineNum, tokPos);
-					}
-					else
-						t = Token.Error("Unexpected character: " + lex, lineNum, tokPos);
-				}
-				nextChar = readChar();	
-			}
+			
+			return Token.Integer(num, lineNum, pos);
 		}
-		return t;
+		
+		else if (Character.isLetter(nextChar) || nextChar == '_') {
+			String ident = "";
+			
+			while (Character.isLetterOrDigit(nextChar) || nextChar == '_') {
+				ident += (char)nextChar;
+				nextChar = readChar();
+			}
+			
+			for (Token.Kind t : Token.Kind.values()) {
+				if (t.matches(ident))
+					return new Token(ident, lineNum, pos);
+			}
+			
+			return Token.Identifier(ident, lineNum, pos);
+		}
+		
+		else {
+			String c = Character.toString((char)nextChar);
+			
+			for (Token.Kind t : Token.Kind.values()) {
+				if (t.matches(nextChar)) {
+					nextChar = readChar();
+					return new Token(c, lineNum, pos);
+				}
+			}
+			
+			nextChar = readChar();
+			return Token.Error("Unexpected character: "+c, lineNum, pos);
+		}
 	}
 
 	@Override
-	public Iterator<Token> iterator() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	// OPTIONAL: any other methods that you find convenient for implementation or testing
-	public boolean foundToken(String lex)
+	public Iterator<Token> iterator()
 	{
-		for(Token.Kind iter : Token.Kind.values())
-			if(iter.matches(lex))
-				return true;
-		return false;
+		return new ScannerIterator(this);
+	}
+	
+	private class ScannerIterator implements Iterator<Token>
+	{
+		Scanner scanner;
+		
+		public ScannerIterator(Scanner scanner) {
+			this.scanner = scanner;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return scanner.nextChar != -1;
+		}
+
+		@Override
+		public Token next() {
+			return scanner.next();
+		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException();
+		}
 	}
 }

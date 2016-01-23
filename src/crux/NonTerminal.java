@@ -119,14 +119,14 @@ public enum NonTerminal {
     DECLARATION(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
         {
-        	add(Token.Kind.IDENTIFIER);
+        	addAll(VARIABLE_DECLARATION.firstSet);
+        	addAll(ARRAY_DECLARATION.firstSet);
+        	addAll(FUNCTION_DEFINITION.firstSet);
         }}),
     DECLARATION_LIST(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
         {
-        	addAll(VARIABLE_DECLARATION.firstSet);
-        	addAll(ARRAY_DECLARATION.firstSet);
-        	addAll(FUNCTION_DEFINITION.firstSet);
+        	addAll(DECLARATION.firstSet);
         }}),    
     ASSIGNMENT_STATEMENT(new HashSet<Token.Kind>() {
         private static final long serialVersionUID = 1L;
