@@ -1,5 +1,0 @@
-// syntax error
-
-func main() : type {
-  fib(7);
-}

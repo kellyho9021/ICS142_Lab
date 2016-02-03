@@ -4,9 +4,9 @@ import java.io.Reader;
 import java.util.Iterator;
 
 public class Scanner implements Iterable<Token> {
-	public static String studentName = "TODO: YOUR NAME";
-	public static String studentID = "TODO: Your 8-digit id";
-	public static String uciNetID = "TODO: uci-net id";
+	public static String studentName = "Kelly Ho";
+	public static String studentID = "81482302";
+	public static String uciNetID = "doankhah";
 	
 	private int lineNum;  // current line count
 	private int charPos;  // character offset for current line

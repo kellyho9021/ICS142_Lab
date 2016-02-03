@@ -1,7 +1,9 @@
 package crux;
 
 public class Token {
-	
+	 public static String studentName = "Kelly Ho";
+	 public static String studentID = "81482302";
+	 public static String uciNetID = "doankhah";
 	public static enum Kind {
 		AND("and"),
 		OR("or"),

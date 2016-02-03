@@ -43,7 +43,7 @@ public class Parser {
         String message = "SyntaxError(" + lineNumber() + "," + charPosition() + ")[Expected a token from " + nt.name() + " but got " + currentToken.kind() + ".]";
         errorBuffer.append(message + "\n");
         return message;
-    }
+        }
      
     private String reportSyntaxError(Token.Kind kind)
     {
@@ -79,7 +79,76 @@ public class Parser {
     {
         return currentToken.charPosition();
     }
-          
+    
+// SymbolTable Management ==========================
+    private SymbolTable symbolTable;
+    
+    private void initSymbolTable()
+    {
+        symbolTable = new SymbolTable();
+        Symbol s = symbolTable.insert("readInt");
+        
+        s = symbolTable.insert("readFloat");
+        
+        s = symbolTable.insert("printBool");
+        
+        s = symbolTable.insert("printInt");
+        
+        s = symbolTable.insert("printFloat");
+        
+        s = symbolTable.insert("println");
+    }
+    
+    private void enterScope()
+    {
+        symbolTable = new SymbolTable(symbolTable);
+    }
+    
+    private void exitScope()
+    {
+        symbolTable = symbolTable.parentTable();
+    }
+
+    private Symbol tryResolveSymbol(Token ident)
+    {
+    	assert(ident.is(Token.Kind.IDENTIFIER));
+    	String name = ident.lexeme();
+        try {
+            return symbolTable.lookup(name);
+        } catch (SymbolNotFoundError e) {
+            String message = reportResolveSymbolError(name, ident.lineNumber(), ident.charPosition());
+            return new ErrorSymbol(message);
+        }
+    }
+
+    private String reportResolveSymbolError(String name, int lineNum, int charPos)
+    {
+        String message = "ResolveSymbolError(" + lineNum + "," + charPos + ")[Could not find " + name + ".]";
+        errorBuffer.append(message + "\n");
+        errorBuffer.append(symbolTable.toString() + "\n");
+        return message;
+    }
+
+    private Symbol tryDeclareSymbol(Token ident)
+    {
+    	assert(ident.is(Token.Kind.IDENTIFIER));
+    	String name = ident.lexeme();
+        try {
+            return symbolTable.insert(name);
+        } catch (RedeclarationError re) {
+            String message = reportDeclareSymbolError(name, ident.lineNumber(), ident.charPosition());
+            return new ErrorSymbol(message);
+        }
+    }
+
+    private String reportDeclareSymbolError(String name, int lineNum, int charPos)
+    {
+        String message = "DeclareSymbolError(" + lineNum + "," + charPos + ")[" + name + " already exists.]";
+        errorBuffer.append(message + "\n");
+        errorBuffer.append(symbolTable.toString() + "\n");
+        return message;
+    }    
+           
 // Parser ==========================================
     private Scanner scanner;
     private Token currentToken;
@@ -92,6 +161,7 @@ public class Parser {
     
     public void parse()
     {
+        initSymbolTable();
         try {
             program();
         } catch (QuitParseException q) {
@@ -111,6 +181,23 @@ public class Parser {
         return nt.firstSet().contains(currentToken.kind());
     }
 
+    /*
+    private boolean assume(Token.Kind kind)
+    {
+        if (!have(kind))
+            reportSyntaxError("Expected token " + kind.name() + " but got " + currentToken);
+        return have(kind);
+    }
+    
+    private Token assume(Set<Token.Kind> kinds)
+    {
+        Token tok = peek(kinds);
+        if (tok.isNull())
+            reportSyntaxError("Expected one of " + kinds + " but got " + currentToken);
+        return tok;
+    }
+    */
+    
     private boolean accept(Token.Kind kind)
     {
         if (have(kind)) {
@@ -128,7 +215,27 @@ public class Parser {
         }
         return false;
     }
-   
+    
+    private Token expectRetrieve(Token.Kind kind)
+    {
+        Token tok = currentToken;
+        if (accept(kind))
+            return tok;
+        String errorMessage = reportSyntaxError(kind);
+        throw new QuitParseException(errorMessage);
+        //return ErrorToken(errorMessage);
+    }
+        
+    private Token expectRetrieve(NonTerminal nt)
+    {
+        Token tok = currentToken;
+        if (accept(nt))
+            return tok;
+        String errorMessage = reportSyntaxError(nt);
+        throw new QuitParseException(errorMessage);
+        //return ErrorToken(errorMessage);
+    }
+    
     private boolean expect(Token.Kind kind)
     {
         if (accept(kind))
@@ -146,31 +253,49 @@ public class Parser {
         throw new QuitParseException(errorMessage);
         //return false;
     }
-   
+    
+    private Integer expectInteger()
+    {
+        String num = currentToken.lexeme();
+        if (expect(Token.Kind.INTEGER))
+            return Integer.valueOf(num);
+        return null;
+    }
+    
 // Grammar Rules =====================================================
     
     // literal := INTEGER | FLOAT | TRUE | FALSE .
     public void literal()
     {
-    	enterRule(NonTerminal.LITERAL);
-    	//System.out.println("LITERAL");
-    	if(have(Token.Kind.INTEGER))
-    		expect(Token.Kind.INTEGER);
-    	else if(have(Token.Kind.FLOAT))
-    		expect(Token.Kind.FLOAT);
-    	else if(have(Token.Kind.TRUE))
-    		expect(Token.Kind.TRUE);
-    	else if(have(Token.Kind.FALSE))
-    		expect(Token.Kind.FALSE);
-    	exitRule(NonTerminal.LITERAL);
+        enterRule(NonTerminal.LITERAL);
+        
+        if (have(Token.Kind.INTEGER)) {
+            expect(Token.Kind.INTEGER);
+            
+        } else if (have(Token.Kind.FLOAT)) {
+            expect(Token.Kind.FLOAT);
+            
+        } else if (have(Token.Kind.TRUE)) {
+            expect(Token.Kind.TRUE);
+            
+        } else if (have(Token.Kind.FALSE)) {
+            expect(Token.Kind.FALSE);
+            
+        } else {
+            String message = reportSyntaxError(NonTerminal.LITERAL);
+        }
+
+        exitRule(NonTerminal.LITERAL);
     }
     
     // designator := IDENTIFIER { "[" expression0 "]" } .
     public void designator()
     {
         enterRule(NonTerminal.DESIGNATOR);
-        //System.out.println("DESIGNATOR");
-        expect(Token.Kind.IDENTIFIER);
+        int lineNum = lineNumber();
+        int charPos = charPosition();
+        Symbol sym = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+        
         while (accept(Token.Kind.OPEN_BRACKET)) {
             expression0();
             expect(Token.Kind.CLOSE_BRACKET);
@@ -179,375 +304,387 @@ public class Parser {
         exitRule(NonTerminal.DESIGNATOR);
     }
     
-    //type
+    // type := IDENTIFIER .
     public void type()
     {
-    	enterRule(NonTerminal.TYPE);
-    	//System.out.println("TYPE");
-    	expect(Token.Kind.IDENTIFIER);
-    	exitRule(NonTerminal.TYPE);
+        enterRule(NonTerminal.TYPE);
+        expectRetrieve(Token.Kind.IDENTIFIER);
+        exitRule(NonTerminal.TYPE);
     }
-    
-    //op0
-    public void op0()
+
+    // op0 := ">=" | "<=" | "!=" | "==" | ">" | "<" .
+    public Token op0()
     {
-    	enterRule(NonTerminal.OP0);
-    	//System.out.println("OP0");
-    	if(have(Token.Kind.GREATER_EQUAL))
-    		expect(Token.Kind.GREATER_EQUAL);
-    	else if(have(Token.Kind.LESSER_EQUAL))
-    		expect(Token.Kind.LESSER_EQUAL);
-    	else if(have(Token.Kind.NOT_EQUAL))
-    		expect(Token.Kind.NOT_EQUAL);
-    	else if(have(Token.Kind.EQUAL))
-    		expect(Token.Kind.EQUAL);
-    	else if(have(Token.Kind.LESS_THAN))
-    		expect(Token.Kind.LESS_THAN);
-    	else if(have(Token.Kind.GREATER_THAN))
-    		expect(Token.Kind.GREATER_THAN);
-    	exitRule(NonTerminal.OP0);
+        enterRule(NonTerminal.OP0);
+        Token tok = expectRetrieve(NonTerminal.OP0);
+        exitRule(NonTerminal.OP0);
+        return tok;
     }
-    
-    //op1
-    public void op1()
+        
+    // expression0 := expression1 [ op0 expression1 ] .
+    public void expression0()
     {
-    	enterRule(NonTerminal.OP1);
-    	//System.out.println("OP1");
-    	if(have(Token.Kind.ADD))
-    		expect(Token.Kind.ADD);
-    	else if(have(Token.Kind.SUB))
-    		expect(Token.Kind.SUB);
-    	else if(have(Token.Kind.OR))
-    		expect(Token.Kind.OR);
-    	exitRule(NonTerminal.OP1);
-    }
-    
-    //op2
-    public void op2()
-    {
-    	enterRule(NonTerminal.OP2);
-    	//System.out.println("OP2");
-    	if(have(Token.Kind.MUL))
-    		expect(Token.Kind.MUL);
-    	else if(have(Token.Kind.DIV))
-    		expect(Token.Kind.DIV);
-    	else if(have(Token.Kind.AND))
-    		expect(Token.Kind.AND);
-    	exitRule(NonTerminal.OP2);
-    }
-    
-    //expression3
-    public void expression3()
-    {
-    	enterRule(NonTerminal.EXPRESSION3);
-    	//System.out.println("EXPRESSION3");
-        if(accept(Token.Kind.NOT))
-        	expression3();
-        else if(accept(Token.Kind.OPEN_PAREN))
-        {
-        	expression0();
-        	expect(Token.Kind.CLOSE_PAREN);
+        enterRule(NonTerminal.EXPRESSION0);
+        expression1();
+        if (have(NonTerminal.OP0)) { 
+            Token op = op0();
+            expression1();
         }
-        else if(have(NonTerminal.DESIGNATOR))
-        	designator();
-        else if(have(NonTerminal.CALL_EXPRESSION))
-        	call_expression();
-        else if(have(NonTerminal.LITERAL))
-        	literal();
-        exitRule(NonTerminal.EXPRESSION3);
+        exitRule(NonTerminal.EXPRESSION0);
+    }
+
+    // op1 := "+" | "-" | "or" .
+    public Token op1()
+    {
+        enterRule(NonTerminal.OP1);
+        Token tok = expectRetrieve(NonTerminal.OP1);
+        exitRule(NonTerminal.OP1);
+        return tok;
     }
     
-    //expression2
+    // expression1 := expression2 { op1 expression2 } .
+    public void expression1()
+    {
+        enterRule(NonTerminal.EXPRESSION1);
+        expression2();
+        while (have(NonTerminal.OP1)) {
+            Token op = op1();
+            expression2();
+        }
+        exitRule(NonTerminal.EXPRESSION1);
+    }
+        
+    // op2 := "*" | "/" | "and" .
+    public Token op2()
+    {
+        enterRule(NonTerminal.OP2);
+        Token tok = expectRetrieve(NonTerminal.OP2);
+        exitRule(NonTerminal.OP2);
+        return tok;
+    }
+    
+    // expression2 := expression3 { op2 expression3 } .
     public void expression2()
     {
-    	enterRule(NonTerminal.EXPRESSION2);
-    	//System.out.println("EXPRESSION2");
-        if(have(NonTerminal.EXPRESSION3))
-        	expression3();
-        while(accept(NonTerminal.OP2))
-        {
-        	op2();
-        	expression3();
+        enterRule(NonTerminal.EXPRESSION2);
+        expression3();
+        while (have(NonTerminal.OP2)) {
+            Token op = op2();
+            expression3();
         }
         exitRule(NonTerminal.EXPRESSION2);
     }
     
-    //expression1
-    public void expression1()
+    /* expression3 := "not" expression3
+               | "(" expression0 ")"
+               | designator
+               | call-expression
+               | literal .
+    */
+    public void expression3()
     {
-    	enterRule(NonTerminal.EXPRESSION1);
-    	//System.out.println("EXPRESSION1");
-        if(have(NonTerminal.EXPRESSION2))
-        	expression2();
-        while(accept(NonTerminal.OP1))
-        {
-        	op1();
-        	expression2();
+        enterRule(NonTerminal.EXPRESSION3);
+        
+        if (have(Token.Kind.NOT)) {
+            Token tok = expectRetrieve(Token.Kind.NOT);
+            expression3();
+        } else if (accept(Token.Kind.OPEN_PAREN)) {
+            expression0();
+            expect(Token.Kind.CLOSE_PAREN);
+        } else if (have(NonTerminal.DESIGNATOR)) {
+            int lineNum = currentToken.lineNumber();
+            int charPos = currentToken.charPosition();
+            designator();
+        } else if (have(NonTerminal.CALL_EXPRESSION)) {
+            call_expression();
+        } else if (have(NonTerminal.LITERAL)) {
+            literal();
+        } else {
+            String message = reportSyntaxError(NonTerminal.EXPRESSION3);
         }
-        exitRule(NonTerminal.EXPRESSION1);
+        exitRule(NonTerminal.EXPRESSION3);
     }
     
-    //expression0
-    public void expression0()
-    {
-    	enterRule(NonTerminal.EXPRESSION0);
-    	//System.out.println("EXPRESSION0");
-        if(have(NonTerminal.EXPRESSION1))
-        	expression1();
-        while(have(NonTerminal.OP0))
-        {
-        	op0();
-        	expression1();
-        }
-        exitRule(NonTerminal.EXPRESSION0);
-    }	
-    
-    //call-expression
+    // call-expression := "::" IDENTIFIER "(" expression-list ")" .
     public void call_expression()
     {
-    	enterRule(NonTerminal.CALL_EXPRESSION);
-    	//System.out.println("CALL_EXPRESSION");
-    	expect(Token.Kind.CALL);
-    	expect(Token.Kind.IDENTIFIER);
-    	
-    	while(accept(Token.Kind.OPEN_PAREN))
-    	{
-    		expression_list();
-    		expect(Token.Kind.CLOSE_PAREN);
-    	}
-    	exitRule(NonTerminal.CALL_EXPRESSION);
-    }	
-    
-    //expression-list
-    public void expression_list()
-    {
-    	enterRule(NonTerminal.EXPRESSION_LIST);
-    	//System.out.println("EXPRESSION_LIST");
-    	if(have(NonTerminal.EXPRESSION0))
-    	{
-    		expression0();
-    		while(accept(Token.Kind.COMMA))
-    			expression0();
-    	}
-    	exitRule(NonTerminal.EXPRESSION_LIST);
+        enterRule(NonTerminal.CALL_EXPRESSION);
+        int lineNum = lineNumber();
+        int charPos = charPosition();
+        
+        expect(Token.Kind.CALL);
+        Symbol func = tryResolveSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+        expect(Token.Kind.OPEN_PAREN);
+        expression_list();
+        expect(Token.Kind.CLOSE_PAREN);
+        
+        exitRule(NonTerminal.CALL_EXPRESSION);
     }
     
-    //parameter
-    public void parameter()
+    // expression-list := [ expression0 { "," expression0 } ] .
+    public void expression_list()
     {
-    	enterRule(NonTerminal.PARAMETER);    
-    	//System.out.println("PARAMETER");
-        expect(Token.Kind.IDENTIFIER);
+        enterRule(NonTerminal.EXPRESSION_LIST);
+        
+        if (have(NonTerminal.EXPRESSION0)) {
+            expression0();
+            while (accept(Token.Kind.COMMA)) {
+                expression0();
+            }
+        }
+        exitRule(NonTerminal.EXPRESSION_LIST);
+    }
+    
+    // parameter := IDENTIFIER ":" type .
+    public Symbol parameter()
+    {
+        enterRule(NonTerminal.PARAMETER);
+        Symbol sym = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
         expect(Token.Kind.COLON);
         type();
         exitRule(NonTerminal.PARAMETER);
+        return sym;
     }
     
-    //parameter-list
-    public void parameter_list()
+    //parameter-list := [ parameter { "," parameter } ] .
+    public List<Symbol> parameter_list()
     {
-    	enterRule(NonTerminal.PARAMETER_LIST);
-    	//System.out.println("PARAMETER_LIST");
-    	if(have(NonTerminal.PARAMETER))
-    	{
-    		parameter();
-    		while(accept(Token.Kind.COMMA))
-    			parameter();
-    	}
-    	exitRule(NonTerminal.PARAMETER_LIST);
+        List<Symbol> params = new ArrayList<Symbol>();
+        enterRule(NonTerminal.PARAMETER_LIST);
+        if (have(NonTerminal.PARAMETER)) {
+            params.add(parameter());
+            while (accept(Token.Kind.COMMA)) {
+                params.add(parameter());
+            }
+        }
+        exitRule(NonTerminal.PARAMETER_LIST);
+        return params;
     }
-    
-    //variable-declaration
+
+    // variable-declaration := "var" IDENTIFIER ":" type ";"
     public void variable_declaration()
     {
-    	enterRule(NonTerminal.VARIABLE_DECLARATION);
-    	//System.out.println("VARIABLE_DECLARATION");
-    	expect(Token.Kind.VAR);
-		expect(Token.Kind.IDENTIFIER);
-		expect(Token.Kind.COLON);
-		type();
-		expect(Token.Kind.SEMICOLON);
-    	exitRule(NonTerminal.VARIABLE_DECLARATION);
+        enterRule(NonTerminal.VARIABLE_DECLARATION);
+        int lineNum = lineNumber();
+        int charPos = charPosition();
+        
+        expect(Token.Kind.VAR);
+        Symbol sym = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+        expect(Token.Kind.COLON);
+        type();
+        expect(Token.Kind.SEMICOLON);
+        exitRule(NonTerminal.VARIABLE_DECLARATION);
     }
     
-    //array-declaration
+    // array-declaration := "array" IDENTIFIER ":" type "[" INTEGER "]" { "[" INTEGER "]" } ";" .
     public void array_declaration()
     {
-    	enterRule(NonTerminal.ARRAY_DECLARATION);
-    	//System.out.println("ARRAY_DECLARATION");
-    	expect(Token.Kind.ARRAY);
-		expect(Token.Kind.IDENTIFIER);
-		expect(Token.Kind.COLON);
-		type();
-		while(accept(Token.Kind.OPEN_BRACKET))
-		{
-			expect(Token.Kind.INTEGER);
-			expect(Token.Kind.CLOSE_BRACKET);
-		}
-		expect(Token.Kind.SEMICOLON);
-    	
-    	exitRule(NonTerminal.ARRAY_DECLARATION);
+        enterRule(NonTerminal.ARRAY_DECLARATION);
+        int lineNum = lineNumber();
+        int charPos = charPosition();
+        
+        expect(Token.Kind.ARRAY);
+        Symbol sym = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+        expect(Token.Kind.COLON);
+        type();
+        expect(Token.Kind.OPEN_BRACKET);
+        expect(Token.Kind.INTEGER);
+        expect(Token.Kind.CLOSE_BRACKET);
+        while (accept(Token.Kind.OPEN_BRACKET)) {
+            expect(Token.Kind.INTEGER);
+            expect(Token.Kind.CLOSE_BRACKET);
+        }
+        expect(Token.Kind.SEMICOLON);
+        
+        exitRule(NonTerminal.ARRAY_DECLARATION);
     }
     
-    //function-definition
+    // function-definition := "func" IDENTIFIER "(" parameter-list ")" ":" type statement-block .
     public void function_definition()
     {
-    	enterRule(NonTerminal.FUNCTION_DEFINITION);
-    	//System.out.println("FUNCTION_DEFINITION");
-    	if(accept(Token.Kind.FUNC))
-    	{
-    		expect(Token.Kind.IDENTIFIER);
-    		while(accept(Token.Kind.OPEN_PAREN))
-    		{
-    			parameter_list();
-    			expect(Token.Kind.CLOSE_PAREN);
-    		}
-    		expect(Token.Kind.COLON);
-    		type();
-    		statement_block();
-    	}
-    	exitRule(NonTerminal.FUNCTION_DEFINITION);
+        enterRule(NonTerminal.FUNCTION_DECLARATION);
+        int lineNum = lineNumber();
+        int charPos = charPosition();
+        
+        expect(Token.Kind.FUNC);
+        Symbol sym = tryDeclareSymbol(expectRetrieve(Token.Kind.IDENTIFIER));
+        expect(Token.Kind.OPEN_PAREN);
+        enterScope();
+        parameter_list();
+        expect(Token.Kind.CLOSE_PAREN);
+        expect(Token.Kind.COLON);
+        type();
+        
+        statement_block();
+        exitScope();
+        
+        exitRule(NonTerminal.FUNCTION_DECLARATION);
     }
-    
-    //declaration
+
+    // declaration := variable-declaration | array-declaration | function-definition .
     public void declaration()
     {
-    	enterRule(NonTerminal.DECLARATION);
-    	//System.out.println("DECLARATION");
-    	if(have(NonTerminal.VARIABLE_DECLARATION))
-    			variable_declaration();
-    	else if(have(NonTerminal.ARRAY_DECLARATION))
-    		array_declaration();
-    	else if(have(NonTerminal.FUNCTION_DEFINITION))
-    		function_definition();
-    	exitRule(NonTerminal.DECLARATION);
+        enterRule(NonTerminal.DECLARATION);
+        
+        if (have(NonTerminal.VARIABLE_DECLARATION)) {
+            variable_declaration();
+        } else if (have(NonTerminal.ARRAY_DECLARATION)) {
+            array_declaration();
+        } else if (have(NonTerminal.FUNCTION_DECLARATION)){
+            function_definition();
+        } else {
+            String message = reportSyntaxError(NonTerminal.DECLARATION);
+        }
+        
+        exitRule(NonTerminal.DECLARATION);
     }
-    
-    //declaration-list
-    public void declaration_list()
-    {
-    	enterRule(NonTerminal.DECLARATION_LIST);
-    	//System.out.println("DECLARATION_LIST");
-    	while(have(NonTerminal.DECLARATION))
-    			declaration();
-    	exitRule(NonTerminal.DECLARATION_LIST);
+
+    // declaration-list := { declaration } .
+    public void declaration_list() {
+        enterRule(NonTerminal.DECLARATION_LIST);
+        
+        while (have(NonTerminal.DECLARATION)) {
+            declaration();
+        }
+        
+        exitRule(NonTerminal.DECLARATION_LIST);
     }
-    
-    //assignment-statement
+
+    // assignment-statement := "let" designator "=" expression0 ";"
     public void assignment_statement()
     {
-    	enterRule(NonTerminal.ASSIGNMENT_STATEMENT);
-    	//System.out.println("ASSIGNMENT_STATEMENT");
-    	expect(Token.Kind.LET);
-		designator();
-		expect(Token.Kind.ASSIGN);
-		expression0();
-		expect(Token.Kind.SEMICOLON);
-    	
-    	exitRule(NonTerminal.ASSIGNMENT_STATEMENT);
+        enterRule(NonTerminal.ASSIGNMENT_STATEMENT);
+        expect(Token.Kind.LET);
+        designator();
+        Token eql = expectRetrieve(Token.Kind.ASSIGN);
+        expression0();
+        expect(Token.Kind.SEMICOLON);
+        exitRule(NonTerminal.ASSIGNMENT_STATEMENT);
     }
-    
-    //call-statement
+        
+    // call-statement := call-expression ";"
     public void call_statement()
     {
-    	enterRule(NonTerminal.CALL_STATEMENT);
-    	//System.out.println("CALL_STATEMENT");
-    	call_expression();
-    	expect(Token.Kind.SEMICOLON);
-    	exitRule(NonTerminal.CALL_STATEMENT);
+        enterRule(NonTerminal.CALL_STATEMENT);
+        call_expression();
+        expect(Token.Kind.SEMICOLON);
+        exitRule(NonTerminal.CALL_STATEMENT);
     }
     
-    //if-statement
+    // if-statement := "if" expression0 statement-block [ "else" statement-block ] .
     public void if_statement()
     {
-    	enterRule(NonTerminal.IF_STATEMENT);
-    	//System.out.println("IF_STATEMENT");
-    	expect(Token.Kind.IF);
-    	expression0();
-    	statement_block();
-    	if(accept(Token.Kind.ELSE))
-    		statement_block();
-    	exitRule(NonTerminal.IF_STATEMENT);
+        enterRule(NonTerminal.IF_STATEMENT);
+        int lineNum = lineNumber();
+        int charPos = charPosition();
+        
+        expect(Token.Kind.IF);
+        expression0();
+        enterScope();
+        statement_block();
+        exitScope();
+        
+        if (accept(Token.Kind.ELSE)) {
+            enterScope();
+            statement_block();
+            exitScope();
+        }
+        
+        exitRule(NonTerminal.IF_STATEMENT);
     }
     
-    //while-statement
+    // while-statement := "while" expression0 statement-block .
     public void while_statement()
     {
-    	enterRule(NonTerminal.WHILE_STATEMENT);
-    	//System.out.println("WHILE_STATEMENT");
-    	if(accept(Token.Kind.WHILE))
-    	{
-    		expression0();
-    		statement_block();
-    	}
-    	exitRule(NonTerminal.WHILE_STATEMENT);
+        enterRule(NonTerminal.WHILE_STATEMENT);
+        int lineNum = lineNumber();
+        int charPos = charPosition();
+        
+        expect(Token.Kind.WHILE);
+        expression0();
+        enterScope();
+        statement_block();
+        exitScope();
+        
+        exitRule(NonTerminal.WHILE_STATEMENT);
     }
     
-    //return-statement
+    // return-statement := "return" expression0 ";" .
     public void return_statement()
     {
-    	enterRule(NonTerminal.RETURN_STATEMENT);
-    	//System.out.println("RETURN_STATEMENT");
-    	if(accept(Token.Kind.RETURN))
-    	{
-    		expression0();
-    		expect(Token.Kind.SEMICOLON);
-    	}
-    	exitRule(NonTerminal.RETURN_STATEMENT);
+        enterRule(NonTerminal.RETURN_STATEMENT);
+        int lineNum = lineNumber();
+        int charPos = charPosition();
+        
+        expect(Token.Kind.RETURN);
+        expression0();
+        expect(Token.Kind.SEMICOLON);
+        
+        exitRule(NonTerminal.RETURN_STATEMENT);
     }
     
-    //statement
+    // statement := variable-declaration
+    //            | call-statement
+    //            | assignment-statement
+    //            | if-statement
+    //            | while-statement
+    //            | return-statement .
     public void statement()
     {
-    	enterRule(NonTerminal.STATEMENT);
-    	//System.out.println("STATEMENT");
-    	if(have(NonTerminal.VARIABLE_DECLARATION))
-    		variable_declaration();
-    	else if(have(NonTerminal.CALL_STATEMENT))
-			call_statement();
-    	else if(have(NonTerminal.ASSIGNMENT_STATEMENT))
-			assignment_statement();
-    	else if(have(NonTerminal.IF_STATEMENT))
-			if_statement();
-    	else if(have(NonTerminal.WHILE_STATEMENT))
-			while_statement();
-    	else if(have(NonTerminal.RETURN_STATEMENT))
-			return_statement();
-    	exitRule(NonTerminal.STATEMENT);
+        enterRule(NonTerminal.STATEMENT);
+        
+        if (have(NonTerminal.VARIABLE_DECLARATION)) {
+            variable_declaration();
+        } else if (have(NonTerminal.ARRAY_DECLARATION)) {
+            array_declaration();
+        } else if (have(NonTerminal.CALL_STATEMENT)) {
+            call_statement();
+        } else if (have(NonTerminal.ASSIGNMENT_STATEMENT)) {
+            assignment_statement();
+        } else if (have(NonTerminal.IF_STATEMENT)) {
+            if_statement();
+        } else if (have(NonTerminal.WHILE_STATEMENT)) {
+            while_statement();
+        } else if (have(NonTerminal.RETURN_STATEMENT)) {
+            return_statement();
+        } else {
+            String message = reportSyntaxError(NonTerminal.STATEMENT);
+        }
+            
+        exitRule(NonTerminal.STATEMENT);
     }
     
-    //statement-list
+    // statement-list := { statement } .
     public void statement_list()
     {
-    	enterRule(NonTerminal.STATEMENT_LIST);
-    	//System.out.println("STATEMENT_LIST");
-    	while(have(NonTerminal.STATEMENT))
-    			statement();
-    	exitRule(NonTerminal.STATEMENT_LIST);
+        enterRule(NonTerminal.STATEMENT_LIST);
+        
+        while (have(NonTerminal.STATEMENT)) {
+            statement();
+        }
+        
+        exitRule(NonTerminal.STATEMENT_LIST);
     }
     
-    //statement-block
+    // statement-block := "{" statement-list "}" .
     public void statement_block()
     {
-    	enterRule(NonTerminal.STATEMENT_BLOCK);
-    	//System.out.println("STATEMENT_BLOCK");
-        while(accept(Token.Kind.OPEN_BRACE))
-        {
-        	statement_list();
-        	expect(Token.Kind.CLOSE_BRACE);
-        }
+        enterRule(NonTerminal.STATEMENT_BLOCK);
+        
+        expect(Token.Kind.OPEN_BRACE);
+        statement_list();
+        expect(Token.Kind.CLOSE_BRACE);
+        
         exitRule(NonTerminal.STATEMENT_BLOCK);
     }
-    
+
     // program := declaration-list EOF .
     public void program()
     {
         enterRule(NonTerminal.PROGRAM);
-       // System.out.println("PROGRAM");
         declaration_list();
         expect(Token.Kind.EOF);
         exitRule(NonTerminal.PROGRAM);
     }
-    
     
 }
