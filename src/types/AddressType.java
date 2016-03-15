@@ -103,7 +103,7 @@ public class AddressType extends Type {
     @Override
     public Type assign(Type source)
     {
-		Type assignType = new VoidType();
+		Type assignType = base.assign(source);
 		if(!base.equivalent(source))
 			assignType = super.assign(source);
         return assignType;

@@ -7,6 +7,7 @@ public class FuncType extends Type {
    
    public FuncType(TypeList args, Type returnType)
    {
+      //throw new RuntimeException("implement operators");
       this.args = args;
       this.ret = returnType;
    }
@@ -40,10 +41,13 @@ public class FuncType extends Type {
    }
    
    @Override
-   public Type call(Type that)
-   {
-	   if(!(args.equivalent(that)))
-		   return super.call(that);
-	   return ret;
+   public Type call(Type arg) {
+       if (!(args.equivalent(arg)))
+           return super.call(arg);
+       return ret;
    }
+
+public Type ret() {
+	return ret;
+}
 }

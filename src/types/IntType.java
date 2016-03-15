@@ -1,5 +1,7 @@
 package types;
 
+import crux.Symbol;
+
 public class IntType extends Type {
 
     public IntType() {
@@ -53,4 +55,23 @@ public class IntType extends Type {
             return false;
         return true;
     }
+    
+	@Override
+    public Type declare(Symbol symbol) {
+       	return this;
+    }
+
+	@Override
+	public Type baseType(Symbol symbol) {
+		return this;
+	}
+    
+	@Override
+	public Type assign(Type source) {
+		if (!equivalent(source)) {
+			return super.assign(source);
+		} else {
+			return this;
+		}
+	}
 }
