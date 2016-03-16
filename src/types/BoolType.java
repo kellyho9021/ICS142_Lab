@@ -1,5 +1,7 @@
 package types;
 
+import crux.Symbol;
+
 public class BoolType extends Type {
     
     public BoolType()

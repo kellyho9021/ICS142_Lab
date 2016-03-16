@@ -23,8 +23,8 @@ li   $v0,  2
 syscall
 jr $ra
 func.printInt:
-lw   $a0, 0($sp)
 li   $v0, 1
+lw   $a0, 0($sp)
 syscall
 jr $ra
 func.println:
@@ -87,6 +87,6 @@ swc1 $f4, 0($sp)
 jal func.printFloat
 addi $sp, $sp, 4
 label.0:
-li    $v0, 10
+li $v0, 10
 syscall
                               # END Code Segment

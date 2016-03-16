@@ -56,10 +56,4 @@ public class ArrayType extends Type {
     {
         return base.assign(source);
     }
-    
-    public Type baseType(Symbol sym)
-    {
-    	Type result = base.baseType(sym);
-    	return result;
-    }
 }

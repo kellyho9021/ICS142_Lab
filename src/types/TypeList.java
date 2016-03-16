@@ -17,12 +17,11 @@ public class TypeList extends Type implements Iterable<Type> {
     {
         list.add(type);
     }
-    
     public List<Type> getList()
     {
     	return list;
     }
-    
+    		
     @Override
     public String toString()
     {
