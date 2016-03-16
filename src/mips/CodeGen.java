@@ -90,14 +90,12 @@ public class CodeGen implements ast.CommandVisitor {
 
     @Override
     public void visit(LiteralBool node) {
-        switch(node.value())
-        {
-        case TRUE:
+    	String val = node.value().toString();
+        if(val == "TRUE")
+        
         	program.appendInstruction("li $t0, " + 1);
-        	break;
-        case FALSE:
+        else
         	program.appendInstruction("li $t0, " + 0);        	
-        }
         program.pushInt("$t0");
     }
 
@@ -262,58 +260,25 @@ public class CodeGen implements ast.CommandVisitor {
     public void visit(Comparison node) {
 		node.leftSide().accept(this);
 		node.rightSide().accept(this);
-        Type type = tc.getType((Command) node.leftSide());
+        
         if (tc.getType((Command)node.leftSide()).equivalent(new FloatType())) {
 			program.popFloat("$f2");
 			program.popFloat("$f0");
-			switch (node.operation()) {
-				case LT:
-					program.appendInstruction("c.lt.s $f0, $f2");
-					pushCond();
-					break;
-				case GT:
-					program.appendInstruction("c.gt.s $f0, $f2");
-					pushCond();
-					break;
-				case LE:
-					program.appendInstruction("c.le.s $f0, $f2");
-					pushCond();
-					break;
-				case GE:
-					program.appendInstruction("c.ge.s $f0, $f2");
-					pushCond();
-					break;
-				case EQ:
-					program.appendInstruction("c.eq.s $f0, $f2");
-					pushCond();
-					break;
-				case NE:
-					program.appendInstruction("c.ne.s $f0, $f2");
-					pushCond();
-					break;
+			String eName = node.operation().toString();
+			for(ast.Comparison.Operation num : ast.Comparison.Operation.values()) {
+				if(num.toString() == eName)
+					{
+						program.appendInstruction("c." + eName.toLowerCase() + ".s $f0, $f2");
+						pushCond();
+					}
 			}
         } else if (tc.getType((Command)node.leftSide()).equivalent(new IntType()) || tc.getType((Command)node.leftSide()).equivalent(new BoolType())) {
 			program.popInt("$t1");
 			program.popInt("$t0");
-			switch (node.operation()) {
-				case LT:
-					program.appendInstruction("slt $t2, $t0, $t1");
-					break;
-				case GT:
-					program.appendInstruction("sgt $t2, $t0, $t1");
-					break;
-				case LE:
-					program.appendInstruction("sle $t2, $t0, $t1");
-					break;
-				case GE:
-					program.appendInstruction("sge $t2, $t0, $t1");
-					break;
-				case EQ:
-					program.appendInstruction("seq $t2, $t0, $t1");
-					break;
-				case NE:
-					program.appendInstruction("sne $t2, $t0, $t1");
-					break;
+			String eName = node.operation().toString();
+			for(ast.Comparison.Operation num : ast.Comparison.Operation.values()) {
+				if(num.toString() == eName)
+					program.appendInstruction("s" + eName.toLowerCase() + " $t2, $t0, $t1");
 			}
 			program.pushInt("$t2");
         }
@@ -361,38 +326,6 @@ public class CodeGen implements ast.CommandVisitor {
 		program.pushInt("$t4");
     }
 
-//    protected int numBytes(Type type) {
-//    	if (type instanceof BoolType)
-//    		return 4;
-//        if (type instanceof IntType)
-//            return 4;
-//        if (type instanceof FloatType)
-//            return 4;
-//        if (type instanceof ArrayType) {
-//            ArrayType aType = (ArrayType)type;
-//            return aType.extent() * numBytes(aType.base());
-//        }
-//        if (type instanceof AddressType) {
-//        	AddressType aType = (AddressType)type;
-//        	return numBytes(aType.base()); 
-//        }
-//        if (type instanceof FuncType) {
-//        	FuncType fType = (FuncType)type;
-//        	return numBytes(fType.returnType());
-//        }
-//        if (type instanceof TypeList) {
-//        	int size = 0;
-//        	for (Type t : ((TypeList) type).getList()) {
-//        		size += numBytes(t);
-//        	}
-//        	return size;
-//        }
-//        if (type instanceof VoidType) {
-//        	return 0;
-//        }
-//        throw new RuntimeException("No size known for " + type);
-//    }
-
 	@Override
     public void visit(Assignment node) {
     	node.destination().accept(this);
@@ -404,7 +337,7 @@ public class CodeGen implements ast.CommandVisitor {
         	program.appendInstruction("swc1 $f0, 0($t0)");
         } else if (tc.getType(node).equivalent(new IntType()) || tc.getType(node).equivalent(new BoolType())){
     		program.popInt("$t0");
-        	program.popInt("$t1"); // dest addr
+        	program.popInt("$t1"); 
         	program.appendInstruction("sw $t0, 0($t1)");
         } else {
         	throw new CodeGenException("Weird type \"" + tc.getType(node) + "\" in assignment.");

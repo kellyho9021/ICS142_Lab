@@ -89,7 +89,7 @@ public class AddressType extends Type {
     public Type index(Type that)
     {
     	Type indx = super.index(that);;
-    	if(base instanceof ArrayType)
+    	if(base instanceof ArrayType || that.equivalent(new IntType()))
     		indx = new AddressType(base.index(that));
         return indx;
     }
